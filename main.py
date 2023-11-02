@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from uvicorn import run
 
 # Import your controller files
-from app.controllers import DataController
+from app.controllers import DataController, AuthController, UserController
 
 
 # Create a main FastAPI app instance
@@ -13,6 +13,8 @@ app = FastAPI()
 
 # Merge the FastAPI app instances from different controllers
 app.include_router(DataController.app)
+app.include_router(AuthController.app)
+app.include_router(UserController.app)
 
 if __name__ == "__main__":
     # Run the FastAPI application using Uvicorn
