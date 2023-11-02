@@ -2,7 +2,7 @@ from pymongo import MongoClient
 
 
 def get_database():
-    CONNECTION_STRING = "mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+2.0.1"
+    CONNECTION_STRING = "mongodb+srv://evan:webservices@tpwebservices-m1.autarun.mongodb.net/"
 
     try:
         client = MongoClient(CONNECTION_STRING)
