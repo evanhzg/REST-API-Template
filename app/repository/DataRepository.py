@@ -7,6 +7,9 @@ import datetime
 # importing ObjectId from bson library
 from bson.objectid import ObjectId
 
+from app.models.Content import Content
+from fastapi import HTTPException
+
 # For example measures, creating fake data using Faker
 # https://faker.readthedocs.io/en/master/
 fake = Faker()
@@ -27,20 +30,28 @@ collection = db[db_name]
 # ========================CRUD===========================
 
 
+
 # [C]RUD : Add data to the db model
-async def add_content():
-    contentData = fake.simple_profile()
+async def add_content(content: Content):
+    try:
 
-    # Example data containing a date, will need a datetime
-    # import to convert a string
-    contentData["birthdate"] = datetime.datetime.combine(
-        contentData["birthdate"], datetime.time()
-    )
+        # Convert the Content object to a dictionary before saving it to the database
+        content_dict = content.dict()
 
-    # putting data in defined collection
-    # and confirms it's id is well defined.
-    collection.insert_one(contentData)
+        # import to convert a string
+        content_dict["birthdate"] = datetime.datetime.combine(
+            content_dict["birthdate"], datetime.time()
+        )
+        # Insert the content into the database and get the inserted content's id
+        collection.insert_one(content_dict)
 
+        # Return the Content object
+        return content
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to add content: {str(e)}"
+        )
 
 # C[R]UD : Fetch content set in the database
 # We'll get 2 of those, here is a fetch of all content
@@ -54,7 +65,7 @@ async def get_all_content():
 
         # Each object will be put in our table
         for content in fetched_content:
-            all_content.append(content)
+            all_content.append(Content(**content))
 
         if not all_content:
             raise HTTPException(status_code=404, detail="No content has been found")

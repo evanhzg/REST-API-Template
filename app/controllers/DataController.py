@@ -1,4 +1,6 @@
+from typing import List
 from fastapi import APIRouter, HTTPException
+from ..models.Content import Content  # import the Profile model
 
 from app.repository.DataRepository import (
     add_content,
@@ -17,23 +19,22 @@ app = APIRouter()
 # API endpoint to add to database
 # Define the route, it will be the URL handling this data
 # Also define the HTTP request. POST as we send data.
-@app.post("/api/content/create")
-async def post_create_content_endpoint():
+@app.post("/api/content/create", response_model=Content)
+async def post_create_content_endpoint(content: Content):
     try:
         # Async call of Repository function, data fetching
         # ain't instantaneous and could lead to issues
-        await add_content()
+        created_content = await add_content(content)
 
-        return {"message": "Content added successfully"}
+        return created_content
 
     # Catch specific exceptions as needed
     except Exception as e:
         return {"message": f"Failed to create content: {str(e)}"}
 
-
 # API endpoint returning all content from the collection
 # HTTP GET method used here as we don't send data
-@app.get("/api/content")
+@app.get("/api/content", response_model=List[Content])
 async def get_all_content_endpoint():
     try:
         all_content = await get_all_content()
@@ -45,13 +46,13 @@ async def get_all_content_endpoint():
 
 
 # API endpoint returning a single entry from the collection
-@app.get("/api/content/{content_id}")
+@app.get("/api/content/{content_id}", response_model=List[Content])
 async def get_content_by_id_endpoint(content_id: str):
     try:
         # Assuming 'get_content_by_id' is a function to fetch content by '_id'
         content = await get_content_by_id(content_id)
         if content is not None:
-            return {"message": "Content returned successfully", "content": content}
+            return content
         else:
             raise HTTPException(status_code=404, detail="Content not found")
 
