@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from uvicorn import run
 
 # Import your controller files
-from controllers import DataController
+from app.controllers import DataController
 
 
 # Create a main FastAPI app instance
