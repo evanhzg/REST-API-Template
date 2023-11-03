@@ -1,5 +1,7 @@
 from typing import List
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+
+from app.repository.AuthRepository import get_current_user
 from ..models.User import User
 
 from app.repository.UserRepository import (
@@ -17,11 +19,11 @@ app = APIRouter()
 async def post_create_user_endpoint(user: User):
     try:
         created_user = await add_user(user)
-
         return created_user
 
     except Exception as e:
-        return {"message": f"Failed to create user: {str(e)}"}
+        return {"message": f"Failed to create user: {str(e.detail)}"}
+
 
 @app.get("/api/users", response_model=List[User])
 async def get_all_user_endpoint():
@@ -59,10 +61,10 @@ async def put_edit_user_endpoint(user_id: str, updated_data: dict):
         return {"message": "user edited successfully"}
 
     except Exception as e:
-        return {"message": f"Failed to edit user: {str(e)}"}
+        return {"message": f"Failed to edit user: {str(e.detail)}"}
 
 
-@app.delete("/api/users/{user_id}/delete")
+@app.delete("/api/users/{user_id}/delete", dependencies=[Depends(get_current_user)])
 async def delete_user_endpoint(user_id: str):
     try:
         await delete_user_by_id(user_id)
@@ -72,7 +74,7 @@ async def delete_user_endpoint(user_id: str):
         return {"message": f"Failed to delete user: {str(e)}"}
 
 
-@app.delete("/api/users/delete_all")
+@app.delete("/api/users/delete_all", dependencies=[Depends(get_current_user)])
 async def delete_all_user_endpoint():
     try:
         await delete_all_user()

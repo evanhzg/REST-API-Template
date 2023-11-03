@@ -1,7 +1,5 @@
 from fastapi import HTTPException
 from app.config.database import db, get_database
-from faker import Faker
-import datetime
 
 
 # importing ObjectId from bson library
@@ -9,22 +7,25 @@ from bson.objectid import ObjectId
 
 from app.models.User import User
 from fastapi import HTTPException
+from pymongo.errors import DuplicateKeyError
 
 # For example measures, creating fake data using Faker
 # https://faker.readthedocs.io/en/master/
-fake = Faker()
 
 
 # ======================DATABASE========================
 
+class UserRepository():
+    def __init__(self):
+        pass
 
 # Initiate the database access
-db_name = "users"
 db = get_database()
 
 # Define collection / table user
 # (using mongodb for this example)
-collection = db[db_name]
+collection = db["users"]
+tokens = db["tokens"]
 
 
 # ========================CRUD===========================
@@ -32,15 +33,11 @@ collection = db[db_name]
 
 
 async def add_user(user: User):
-    try:
+    if collection.find_one({"username": user.username}):
+        raise HTTPException(status_code=404, detail="Username already exists",)
+    else:
         collection.insert_one(user.dict())
-
         return user
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to add user: {str(e)}"
-        )
 
 async def get_all_user():
     try:
@@ -62,34 +59,9 @@ async def get_all_user():
         )
 
 
-    # Second READ function : Lone user fetch
-    async def get_user_by_id(id: str):
-        # Fetching data with matching id, could do the same
-        try:
-            user = collection.find({"_id": ObjectId(id)}, {"_id": 0})
-
-            user = list(user)
-
-            if user:
-                return user
-            else:
-                raise HTTPException(status_code=404, detail="User doesn't exist")
-
-        except HTTPException as e:
-            raise e
-
-        except Exception as e:
-            raise HTTPException(
-                status_code=500, detail=f"Failed to return user: {str(e)}"
-            )
-        
-
-
 # Second READ function : Lone user fetch
 async def get_user_by_id(id: str):
     # Fetching data with matching id, could do the same
-    # for any parameter but would need {"_id": 0} to
-    # contain the results
     try:
         user = collection.find({"_id": ObjectId(id)}, {"_id": 0})
 
@@ -108,12 +80,35 @@ async def get_user_by_id(id: str):
             status_code=500, detail=f"Failed to return user: {str(e)}"
         )
 
+async def get_user_by_username(username: str):
+    try:
+        user = collection.find({"username": username}, {"_id": 0})
+
+        user = list(user)
+
+        if user:
+            print(user)
+            return user[0]
+        else:
+            raise HTTPException(status_code=404, detail="User doesn't exist")
+
+    except HTTPException as e:
+        raise e
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to return user: {str(e)}"
+        )
+        
 
 # CR[U]D : Editing an existing collection entry in the db
 async def edit_user(id: str, updated_data: dict):
     # finds the searched entry and sets every edited data
     # to the updated one from a dict
-    collection.update_one({"_id": ObjectId(id)}, {"$set": updated_data})
+    if collection.find_one({"username": updated_data["username"]}):
+        raise HTTPException(status_code=404, detail="Username already exists",)
+    else:
+        collection.update_one({"_id": ObjectId(id)}, {"$set": updated_data})
 
 
 # CRU[D] : Removing given entry from the database
@@ -133,6 +128,7 @@ async def delete_all_user():
     try:
         # Use the `delete_many` method to remove all documents from the collection
         result = collection.delete_many({})
+        tokens.delete_many({})
 
         if result.deleted_count > 0:
             return {"message": "All user has been deleted"}
